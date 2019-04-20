@@ -1,29 +1,30 @@
-/* Library for reading SDM 120/220/230/630 Modbus Energy meters.
+/* Library for reading Berg BZ40i Modbus Energy meters.
 *  Reading via Hardware or Software Serial library & rs232<->rs485 converter
-*  2016-2018 Reaper7 (tested on wemos d1 mini->ESP8266 with Arduino 1.9.0-beta & 2.4.1 esp8266 core)
+*  2019 Florian "adlerweb" Knodt · www.adlerweb.info
+*  Based on BZ40i_Energy_Meter 2016-2019 Reaper7
 *  crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino/)
 */
 //------------------------------------------------------------------------------
-#include "SDM.h"
+#include "BZ40i.h"
 //------------------------------------------------------------------------------
 #ifdef USE_HARDWARESERIAL
-SDM::SDM(HardwareSerial& serial, long baud, int dere_pin, int config, bool swapuart) : sdmSer(serial) {
+BZ40i::BZ40i(HardwareSerial& serial, long baud, int dere_pin, int config, bool swapuart) : sdmSer(serial) {
   this->_baud = baud;
   this->_config = config;
   this->_dere_pin = dere_pin;
   this->_swapuart = swapuart;
 }
 #else
-SDM::SDM(SoftwareSerial& serial, long baud, int dere_pin) : sdmSer(serial) {
+BZ40i::BZ40i(SoftwareSerial& serial, long baud, int dere_pin) : sdmSer(serial) {
   this->_baud = baud;
   this->_dere_pin = dere_pin;
 }
 #endif
 
-SDM::~SDM() {
+BZ40i::~BZ40i() {
 }
 
-void SDM::begin(void) {
+void BZ40i::begin(void) {
 #ifdef USE_HARDWARESERIAL
   #ifdef ESP8266
     sdmSer.begin(_baud, (SerialConfig)_config);
@@ -43,12 +44,12 @@ void SDM::begin(void) {
     pinMode(_dere_pin, OUTPUT);
 }
 
-float SDM::readVal(uint16_t reg, uint8_t node) {
+float BZ40i::readVal(uint16_t reg, uint8_t node) {
   uint16_t temp;
   unsigned long resptime;
-  uint8_t sdmarr[FRAMESIZE] = {node, SDM_B_02, 0, 0, SDM_B_05, SDM_B_06, 0, 0, 0};
+  uint8_t sdmarr[FRAMESIZE] = {node, BZ40i_B_02, 0, 0, BZ40i_B_05, BZ40i_B_06, 0, 0, 0};
   float res = NAN;
-  uint16_t readErr = SDM_ERR_NO_ERROR;
+  uint16_t readErr = BZ40i_ERR_NO_ERROR;
 
   sdmarr[2] = highByte(reg);
   sdmarr[3] = lowByte(reg);
@@ -66,29 +67,29 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
     sdmSer.read();
   }
 
-  if (_dere_pin != NOT_A_PIN)                                                   //transmit to SDM  -> DE Enable, /RE Disable (for control MAX485)
+  if (_dere_pin != NOT_A_PIN)                                                   //transmit to BZ40i  -> DE Enable, /RE Disable (for control MAX485)
     digitalWrite(_dere_pin, HIGH);
 
-  delay(2);                                                                     //fix for issue (nan reading) by sjfaustino: https://github.com/reaper7/SDM_Energy_Meter/issues/7#issuecomment-272111524
+  delay(2);                                                                     //fix for issue (nan reading) by sjfaustino: https://github.com/reaper7/BZ40i_Energy_Meter/issues/7#issuecomment-272111524
 
   sdmSer.write(sdmarr, FRAMESIZE - 1);                                          //send 8 bytes
 
   sdmSer.flush();                                                               //clear out tx buffer
 
-  if (_dere_pin != NOT_A_PIN)                                                   //receive from SDM -> DE Disable, /RE Enable (for control MAX485)
+  if (_dere_pin != NOT_A_PIN)                                                   //receive from BZ40i -> DE Disable, /RE Enable (for control MAX485)
     digitalWrite(_dere_pin, LOW);
 
   resptime = millis() + MAX_MILLIS_TO_WAIT;
 
   while (sdmSer.available() < FRAMESIZE) {
     if (resptime < millis()) {
-      readErr = SDM_ERR_TIMEOUT;                                                //err debug (4)
+      readErr = BZ40i_ERR_TIMEOUT;                                                //err debug (4)
       break;
     }
     yield();
   }
 
-  if (readErr == SDM_ERR_NO_ERROR) {                                            //if no timeout...
+  if (readErr == BZ40i_ERR_NO_ERROR) {                                            //if no timeout...
 
     if(sdmSer.available() >= FRAMESIZE) {
 
@@ -96,7 +97,7 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
         sdmarr[n] = sdmSer.read();
       }
 
-      if (sdmarr[0] == node && sdmarr[1] == SDM_B_02 && sdmarr[2] == SDM_REPLY_BYTE_COUNT) {
+      if (sdmarr[0] == node && sdmarr[1] == BZ40i_B_02 && sdmarr[2] == BZ40i_REPLY_BYTE_COUNT) {
 
         if ((calculateCRC(sdmarr, FRAMESIZE - 2)) == ((sdmarr[8] << 8) | sdmarr[7])) {  //calculate crc from first 7 bytes and compare with received crc (bytes 7 & 8)
           ((uint8_t*)&res)[3]= sdmarr[3];
@@ -104,20 +105,20 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
           ((uint8_t*)&res)[1]= sdmarr[5];
           ((uint8_t*)&res)[0]= sdmarr[6];
         } else {
-          readErr = SDM_ERR_CRC_ERROR;                                          //err debug (1)
+          readErr = BZ40i_ERR_CRC_ERROR;                                          //err debug (1)
         }
 
       } else {
-        readErr = SDM_ERR_WRONG_BYTES;                                          //err debug (2)
+        readErr = BZ40i_ERR_WRONG_BYTES;                                          //err debug (2)
       }
 
     } else {
-      readErr = SDM_ERR_NOT_ENOUGHT_BYTES;                                      //err debug (3)
+      readErr = BZ40i_ERR_NOT_ENOUGHT_BYTES;                                      //err debug (3)
     }
 
   }
 
-  if (readErr != SDM_ERR_NO_ERROR) {                                            //if error then copy temp error value to global val and increment global error counter
+  if (readErr != BZ40i_ERR_NO_ERROR) {                                            //if error then copy temp error value to global val and increment global error counter
     readingerrcode = readErr;
     readingerrcount++; 
   }
@@ -133,29 +134,29 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
   return (res);
 }
 
-uint16_t SDM::getErrCode(bool _clear) {
+uint16_t BZ40i::getErrCode(bool _clear) {
   uint16_t _tmp = readingerrcode;
   if (_clear == true)
     clearErrCode();
   return (_tmp);
 }
 
-uint16_t SDM::getErrCount(bool _clear) {
+uint16_t BZ40i::getErrCount(bool _clear) {
   uint16_t _tmp = readingerrcount;
   if (_clear == true)
     clearErrCount();
   return (_tmp);
 }
 
-void SDM::clearErrCode() {
-  readingerrcode = SDM_ERR_NO_ERROR;
+void BZ40i::clearErrCode() {
+  readingerrcode = BZ40i_ERR_NO_ERROR;
 }
 
-void SDM::clearErrCount() {
+void BZ40i::clearErrCount() {
   readingerrcount = 0;
 }
 
-uint16_t SDM::calculateCRC(uint8_t *array, uint8_t num) {
+uint16_t BZ40i::calculateCRC(uint8_t *array, uint8_t num) {
   uint16_t _crc, _flag;
   _crc = 0xFFFF;
   for (uint8_t i = 0; i < num; i++) {

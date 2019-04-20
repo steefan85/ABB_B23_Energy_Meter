@@ -1,6 +1,7 @@
-/* Library for reading SDM 120/220/230/630 Modbus Energy meters.
+/* Library for reading Berg BZ40i Modbus Energy meters.
 *  Reading via Hardware or Software Serial library & rs232<->rs485 converter
-*  2016-2019 Reaper7 (tested on wemos d1 mini->ESP8266 with Arduino 1.9.0-beta & 2.4.1 esp8266 core)
+*  2019 Florian "adlerweb" Knodt · www.adlerweb.info
+*  Based on BZ40i_Energy_Meter 2016-2019 Reaper7
 *  crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino/)
 */
 
@@ -21,7 +22,7 @@
 /*
 *  define user baudrate
 */
-//#define SDM_UART_BAUD                       9600                                
+//#define BZ40i_UART_BAUD                       9600                                
 
 //------------------------------------------------------------------------------
 
@@ -35,9 +36,9 @@
 #ifdef USE_HARDWARESERIAL
 
   /*
-  *  define user SDM_UART_CONFIG
+  *  define user BZ40i_UART_CONFIG
   */
-  //#define SDM_UART_CONFIG                   SERIAL_8N1                          
+  //#define BZ40i_UART_CONFIG                   SERIAL_8N1                          
 
   //----------------------------------------------------------------------------
 
@@ -51,7 +52,7 @@
 //------------------------------------------------------------------------------
 
 /*
-*  define user MAX_MILLIS_TO_WAIT to wait for response from SDM
+*  define user MAX_MILLIS_TO_WAIT to wait for response from BZ40i
 */
 //#define MAX_MILLIS_TO_WAIT                  500                                 
 
