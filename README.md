@@ -30,7 +30,7 @@ you also need rs232<->rs485 converter:
 ---
 
 ### Configuring: ###
-Default configuration is specified in the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L18) file, and parameters are set to:</br>
+Default configuration is specified in the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L19) file, and parameters are set to:</br>
 <i>Software Serial, baud 4800, uart config SERIAL_8N1, without DE/RE pin</i>.</br>
 
 User can set the parameters in two ways:
@@ -38,14 +38,14 @@ User can set the parameters in two ways:
 - by passing values during initialization (section below)
 
 NOTE for Hardware Serial mode: <i>to force the Hardware Serial mode,</br>
-user must edit the corresponding entry in [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h#L13) file.</br>
+user must edit the corresponding entry in [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h#L15) file.</br>
 adding #define USE_HARDWARESERIAL to the main ino file is not enough.</i>
 
 ---
 
 ### Initializing: ###
 If the user configuration is specified in the [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h) file</br>
-or if the default configuration from the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L18) file is suitable</br>
+or if the default configuration from the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L19) file is suitable</br>
 initialization is limited to passing serial port reference (software or hardware)</br>
 and looks as follows:
 ```cpp
@@ -104,12 +104,12 @@ to ensure low level on GPIO15 by built-in in most ESP8266 modules pulldown resis
 
 ### Reading: ###
 List of available registers for Berg BZ40i:</br>
-https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L50
+https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L59
 ```cpp
 //reading voltage from BZ40i with slave address 0x01 (default)
 //                                      __________register name
 //                                     |
-uint32_t voltage = bz40i.readVal(BZ40i_VOLTAGE);
+float voltage = bz40i.readVal(BZ40i_U_SYSTEM);
 
 //reading power from 1st BZ40i with slave address ID = 0x01
 //reading power from 2nd BZ40i with slave address ID = 0x02
@@ -117,8 +117,8 @@ uint32_t voltage = bz40i.readVal(BZ40i_VOLTAGE);
 //                                      __________register name
 //                                     |      ____BZ40i device ID  
 //                                     |     |
-uint32_t power1 = bz40i.readVal(BZ40i_POWER, 0x01);
-uint32_t power2 = bz40i.readVal(BZ40i_POWER, 0x02);
+float power1 = bz40i.readVal(BZ40i_P_SYSTEM, 0x01);
+float power2 = bz40i.readVal(BZ40i_P_SYSTEM, 0x02);
 ```
 NOTE: <i>if you reading multiple BZ40i devices on the same RS485 line,</br>
 remember to set the same transmission parameters on each device,</br>
@@ -154,7 +154,7 @@ uint16_t lasterror = bz40i.getErrCode(true);
 bz40i.clearErrCode();
 ```
 Errors list returned by <b>getErrCode</b>:</br>
-https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L142</br>
+https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L214</br>
 
 You can also check total number of errors using function:
 ```cpp

@@ -1,8 +1,8 @@
 /* Library for reading Berg BZ40i Modbus Energy meters.
 *  Reading via Hardware or Software Serial library & rs232<->rs485 converter
-*  2019 Florian "adlerweb" Knodt · www.adlerweb.info
-*  Based on BZ40i_Energy_Meter 2016-2019 Reaper7
-*  crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino/)
+*  2019 Florian "adlerweb" Knodt ï¿½ www.adlerweb.info
+*  Based on SDM_Energy_Meter 2016-2019 Reaper7
+*  crc calculation by Jaime Garcï¿½a (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino/)
 */
 //------------------------------------------------------------------------------
 #include "BZ40i.h"
@@ -44,24 +44,32 @@ void BZ40i::begin(void) {
     pinMode(_dere_pin, OUTPUT);
 }
 
-float BZ40i::readVal(uint16_t reg, uint8_t node) {
+float BZ40i::readVal(uint16_t reg, byte type, uint8_t node) {
   uint16_t temp;
   unsigned long resptime;
-  uint8_t sdmarr[FRAMESIZE] = {node, BZ40i_B_02, 0, 0, BZ40i_B_05, BZ40i_B_06, 0, 0, 0};
+  uint8_t sdmarr[FRAMESIZE_MAX];
   float res = NAN;
   uint16_t readErr = BZ40i_ERR_NO_ERROR;
+
+  for(temp=0; temp<FRAMESIZE_MAX; temp++) sdmarr[temp] = 0x00;
+
+  sdmarr[0] = node;
+  sdmarr[1] = BZ40i_B_02;
 
   sdmarr[2] = highByte(reg);
   sdmarr[3] = lowByte(reg);
 
-  temp = calculateCRC(sdmarr, FRAMESIZE - 3);                                   //calculate out crc only from first 6 bytes
+  sdmarr[4] = BZ40i_B_05;
+  sdmarr[5] = BZ40i_B_06;
+
+  temp = calculateCRC(sdmarr, FRAMESIZE_OUT - 3);                               //calculate out crc only from first 6 bytes
 
   sdmarr[6] = lowByte(temp);
   sdmarr[7] = highByte(temp);
 
-#ifndef USE_HARDWARESERIAL
-  sdmSer.listen();                                                              //enable softserial rx interrupt
-#endif
+  #ifndef USE_HARDWARESERIAL
+    sdmSer.listen();                                                            //enable softserial rx interrupt
+  #endif
 
   while (sdmSer.available() > 0)  {                                             //read serial if any old data is available
     sdmSer.read();
@@ -72,7 +80,7 @@ float BZ40i::readVal(uint16_t reg, uint8_t node) {
 
   delay(2);                                                                     //fix for issue (nan reading) by sjfaustino: https://github.com/reaper7/BZ40i_Energy_Meter/issues/7#issuecomment-272111524
 
-  sdmSer.write(sdmarr, FRAMESIZE - 1);                                          //send 8 bytes
+  sdmSer.write(sdmarr, FRAMESIZE_OUT - 1);                                      //send 8 bytes
 
   sdmSer.flush();                                                               //clear out tx buffer
 
@@ -81,7 +89,7 @@ float BZ40i::readVal(uint16_t reg, uint8_t node) {
 
   resptime = millis() + MAX_MILLIS_TO_WAIT;
 
-  while (sdmSer.available() < FRAMESIZE) {
+  while (sdmSer.available() < FRAMESIZE_IN) {
     if (resptime < millis()) {
       readErr = BZ40i_ERR_TIMEOUT;                                                //err debug (4)
       break;
@@ -91,19 +99,39 @@ float BZ40i::readVal(uint16_t reg, uint8_t node) {
 
   if (readErr == BZ40i_ERR_NO_ERROR) {                                            //if no timeout...
 
-    if(sdmSer.available() >= FRAMESIZE) {
+    if(sdmSer.available() >= FRAMESIZE_IN) {
 
-      for(int n=0; n<FRAMESIZE; n++) {
+      for(int n=0; n<FRAMESIZE_IN; n++) {
         sdmarr[n] = sdmSer.read();
       }
 
       if (sdmarr[0] == node && sdmarr[1] == BZ40i_B_02 && sdmarr[2] == BZ40i_REPLY_BYTE_COUNT) {
 
-        if ((calculateCRC(sdmarr, FRAMESIZE - 2)) == ((sdmarr[8] << 8) | sdmarr[7])) {  //calculate crc from first 7 bytes and compare with received crc (bytes 7 & 8)
-          ((uint8_t*)&res)[3]= sdmarr[3];
-          ((uint8_t*)&res)[2]= sdmarr[4];
-          ((uint8_t*)&res)[1]= sdmarr[5];
-          ((uint8_t*)&res)[0]= sdmarr[6];
+        if ((calculateCRC(sdmarr, FRAMESIZE_IN - 2)) == ((sdmarr[(FRAMESIZE_IN-1)] << 8) | sdmarr[(FRAMESIZE_IN-2)])) {  //calculate crc and compare with received crc
+          if(type == 1) {
+            int32_t sinput = 0;
+            ((uint8_t*)&sinput)[3]= sdmarr[7];
+            ((uint8_t*)&sinput)[2]= sdmarr[8];
+            ((uint8_t*)&sinput)[1]= sdmarr[9];
+            ((uint8_t*)&sinput)[0]= sdmarr[10];
+            res = sinput;
+            res /= 1000;
+          }else if(type == 0){
+            uint32_t uinput = 0;
+            ((uint8_t*)&uinput)[3]= sdmarr[7];
+            ((uint8_t*)&uinput)[2]= sdmarr[8];
+            ((uint8_t*)&uinput)[1]= sdmarr[9];
+            ((uint8_t*)&uinput)[0]= sdmarr[10];
+            res = uinput;
+            res /= 1000;
+          }else{
+            uint32_t uinput = 0;
+            ((uint8_t*)&uinput)[3]= sdmarr[7];
+            ((uint8_t*)&uinput)[2]= sdmarr[8];
+            ((uint8_t*)&uinput)[1]= sdmarr[9];
+            ((uint8_t*)&uinput)[0]= sdmarr[10];
+            res = uinput;
+          }
         } else {
           readErr = BZ40i_ERR_CRC_ERROR;                                          //err debug (1)
         }
