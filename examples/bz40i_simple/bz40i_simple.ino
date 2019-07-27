@@ -1,57 +1,89 @@
-/*  WEMOS D1 Mini
-                     ______________________________
-                    |   L T L T L T L T L T L T    |
-                    |                              |
-                 RST|                             1|TX HSer
-                  A0|                             3|RX HSer
-                  D0|16                           5|D1
-                  D5|14                           4|D2
-                  D6|12                    10kPUP_0|D3
-RX SSer/HSer swap D7|13                LED_10kPUP_2|D4
-TX SSer/HSer swap D8|15                            |GND
-                 3V3|__                            |5V
-                       |                           |
-                       |___________________________|
-*/
-
+/**
+ * Simple BZ40i Example
+ * 
+ * Dump measurements to serial console
+ *  
+ * Requires:
+ * https://github.com/plerup/espsoftwareserial#4.0.0
+ */
 #include <SoftwareSerial.h>                                                     //import SoftwareSerial library
-#include <SDM.h>                                                                //import SDM library
+#include <BZ40i.h>                                                              //import BZ40i library
 
-SoftwareSerial swSerSDM(13, 15);                                                //config SoftwareSerial (rx->pin13 / tx->pin15)
+SoftwareSerial swSerBZ40i(D1, D2);                                              //config SoftwareSerial (rx->D1 / tx->D2)
 
-SDM sdm(swSerSDM, 9600, NOT_A_PIN);                                             //config SDM
+BZ40i bz40i(swSerBZ40i, 4800, NOT_A_PIN);                                       //config BZ40i
+
+#define NBREG 37
+
+typedef struct {
+  String dname;
+  const uint16_t regarr;
+  byte isSigned;
+} bz40i_struct;
+
+bz40i_struct bz40iarr[NBREG] = {
+  {"BZ40i_U_SYSTEM",        BZ40i_U_SYSTEM,       0},
+  {"BZ40i_U_LN_P1",         BZ40i_U_LN_P1,        0},
+  {"BZ40i_U_LN_P2",         BZ40i_U_LN_P2,        0},
+  {"BZ40i_U_LN_P3",         BZ40i_U_LN_P3,        0},
+  {"BZ40i_U_LL_P12",        BZ40i_U_LL_P12,       0},
+  {"BZ40i_U_LL_P23",        BZ40i_U_LL_P23,       0},
+  {"BZ40i_U_LL_P31",        BZ40i_U_LL_P31,       0},
+  {"BZ40i_I_SYSTEM",        BZ40i_I_SYSTEM,       1},
+  {"BZ40i_I_P1",            BZ40i_I_P1,           1},
+  {"BZ40i_I_P2",            BZ40i_I_P2,           1},
+  {"BZ40i_I_P3",            BZ40i_I_P3,           1},
+  {"BZ40i_I_N",             BZ40i_I_N,            0},
+  {"BZ40i_PF_SYSTEM",       BZ40i_PF_SYSTEM,      1},
+  {"BZ40i_PF_P1",           BZ40i_PF_P1,          1},
+  {"BZ40i_PF_P2",           BZ40i_PF_P2,          1},
+  {"BZ40i_PF_P3",           BZ40i_PF_P3,          1},
+  {"BZ40i_S_SYSTEM",        BZ40i_S_SYSTEM,       1},
+  {"BZ40i_S_P1",            BZ40i_S_P1,           1},
+  {"BZ40i_S_P2",            BZ40i_S_P2,           1},
+  {"BZ40i_S_P3",            BZ40i_S_P3,           1},
+  {"BZ40i_P_SYSTEM",        BZ40i_P_SYSTEM,       1},
+  {"BZ40i_P_P1",            BZ40i_P_P1,           1},
+  {"BZ40i_P_P2",            BZ40i_P_P2,           1},
+  {"BZ40i_P_P3",            BZ40i_P_P3,           1},
+  {"BZ40i_Q_SYSTEM",        BZ40i_Q_SYSTEM,       1},
+  {"BZ40i_Q_P1",            BZ40i_Q_P1,           1},
+  {"BZ40i_Q_P2",            BZ40i_Q_P2,           1},
+  {"BZ40i_Q_P3",            BZ40i_Q_P3,           1},
+  {"BZ40i_F",               BZ40i_F,              2},
+  {"BZ40i_IMPORT_P",        BZ40i_IMPORT_P,       0},
+  {"BZ40i_IMPORT_Q_LAG",    BZ40i_IMPORT_Q_LAG,   0},
+  {"BZ40i_IMPORT_Q_LEAD",   BZ40i_IMPORT_Q_LEAD,  0},
+  {"BZ40i_IMPORT_S",        BZ40i_IMPORT_S,       0},
+  {"BZ40i_EXPORT_P",        BZ40i_EXPORT_P,       0},
+  {"BZ40i_EXPORT_Q_LAG",    BZ40i_EXPORT_Q_LAG,   0},
+  {"BZ40i_EXPORT_Q_LEAD",   BZ40i_EXPORT_Q_LEAD,  0},
+  {"BZ40i_EXPORT_S",        BZ40i_EXPORT_S,       0}
+};
 
 void setup() {
   Serial.begin(115200);                                                         //initialize serial
-  sdm.begin();                                                                  //initialize SDM communication
+  bz40i.begin();                                                                //initialize BZ40i communication
 }
 
 void loop() {
-  char bufout[10];
-  sprintf(bufout, "%c[1;0H", 27);
-  Serial.print(bufout);
+  float temp = NAN;
+  Serial.println("Reading...");
 
-  Serial.print("Voltage:   ");
-  Serial.print(sdm.readVal(SDM220T_VOLTAGE), 2);                                //display voltage
-  Serial.println("V");
+  for (uint8_t i = 0; i < NBREG; i++) {
+    Serial.print("  ADDR: 0x");
+    Serial.print(bz40iarr[i].regarr, 16);
+    temp = bz40i.readVal(bz40iarr[i].regarr, bz40iarr[i].isSigned);
 
-  delay(50);
+    Serial.print(" = ");
+    Serial.print(temp);
 
-  Serial.print("Current:   ");
-  Serial.print(sdm.readVal(SDM220T_CURRENT), 2);                                //display current  
-  Serial.println("A");
+    Serial.print(" (");
+    Serial.print(bz40iarr[i].dname);
+    Serial.println(")");
 
-  delay(50);
-
-  Serial.print("Power:     ");
-  Serial.print(sdm.readVal(SDM220T_POWER), 2);                                  //display power
-  Serial.println("W");
-
-  delay(50);
-
-  Serial.print("Frequency: ");
-  Serial.print(sdm.readVal(SDM220T_FREQUENCY), 2);                              //display frequency
-  Serial.println("Hz");   
+    yield();
+  }
 
   delay(1000);                                                                  //wait a while before next loop
 }

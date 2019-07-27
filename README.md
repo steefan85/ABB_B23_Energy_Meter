@@ -41,6 +41,8 @@ NOTE for Hardware Serial mode: <i>to force the Hardware Serial mode,</br>
 user must edit the corresponding entry in [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h#L15) file.</br>
 adding #define USE_HARDWARESERIAL to the main ino file is not enough.</i>
 
+Keep in mind you need to set your BZ40i to RTU-mode with the same baudrate as defined here, for example "BAU r4.8k".
+
 ---
 
 ### Initializing: ###
@@ -168,6 +170,12 @@ uint16_t cnterrors = bz40i.getErrCount(true);
 //clear errors counter also available with:
 bz40i.clearErrCount();
 ```
+
+---
+
+### Notes: ###
+
+I wasn't able to get a proper timing with ESP8266 and SoftwareSerial 5.x. If you run into similar problems try downgrading to Version 4.0. Also keep in mind a lower baudrate is much more likely to work.
 
 ---
 

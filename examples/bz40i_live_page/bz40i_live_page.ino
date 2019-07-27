@@ -1,24 +1,16 @@
-//sdm live page example by reaper7
+/**
+ * BZ40i HTTP Example
+ * 
+ * Live HTTP status page for BZ40i
+ *  
+ * Requires:
+ * https://github.com/plerup/espsoftwareserial#4.0.0
+ * https://github.com/me-no-dev/ESPAsyncTCP
+ * https://github.com/me-no-dev/ESPAsyncWebServer
+ */
 
-#define READSDMEVERY  2000                                                      //read sdm every 2000ms
-#define NBREG   5                                                               //number of sdm registers to read
+#define READSDMEVERY  5000                                                      //read BZ40i every 5s
 //#define USE_STATIC_IP
-
-/*  WEMOS D1 Mini
-                     ______________________________
-                    |   L T L T L T L T L T L T    |
-                    |                              |
-                 RST|                             1|TX HSer
-                  A0|                             3|RX HSer
-                  D0|16                           5|D1
-                  D5|14                           4|D2
-                  D6|12                    10kPUP_0|D3
-RX SSer/HSer swap D7|13                LED_10kPUP_2|D4
-TX SSer/HSer swap D8|15                            |GND
-                 3V3|__                            |5V
-                       |                           |
-                       |___________________________|
-*/
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -29,16 +21,20 @@ TX SSer/HSer swap D8|15                            |GND
 #include <ESPAsyncWebServer.h>                                                  //https://github.com/me-no-dev/ESPAsyncWebServer
 
 #include <SoftwareSerial.h>                                                     //import SoftwareSerial library (if used)
-#include <SDM.h>                                                                //https://github.com/reaper7/SDM_Energy_Meter
+#include <BZ40i.h>                                                              //https://github.com/adlerweb/BZ40i_Energy_Meter/
 
 #include "index_page.h"
+
+#define NBREG 37
+#define DEBUG_SERIAL
+
 //------------------------------------------------------------------------------
 AsyncWebServer server(80);
 
-SoftwareSerial swSerSDM(13, 15);                                                //config SoftwareSerial (rx->pin13 / tx->pin15) (if used)
+SoftwareSerial swSerBZ40i(D1, D2);                                              //config SoftwareSerial (rx->D1 / tx->D2)
 
-SDM sdm(swSerSDM, 9600, NOT_A_PIN);                                             //SOFTWARE SERIAL
-//SDM sdm(Serial, 9600, NOT_A_PIN, SERIAL_8N1, false);                            //HARDWARE SERIAL
+BZ40i bz40i(swSerBZ40i, 4800, NOT_A_PIN);                                       //SOFTWARE SERIAL
+//BZ40i bz40i(Serial, 9600, NOT_A_PIN, SERIAL_8N1, false);                      //HARDWARE SERIAL
 
 //------------------------------------------------------------------------------
 String devicename = "PWRMETER";
@@ -56,34 +52,66 @@ String lastresetreason = "";
 
 unsigned long readtime;
 //------------------------------------------------------------------------------
-typedef volatile struct {
-  volatile float regvalarr;
+typedef struct {
+  String dname;
+  float regvalarr;
   const uint16_t regarr;
-} sdm_struct;
+  byte isSigned;
+} bz40i_struct;
 
-volatile sdm_struct sdmarr[NBREG] = {
-  {0.00, SDM220T_VOLTAGE},                                                      //V
-  {0.00, SDM220T_CURRENT},                                                      //A
-  {0.00, SDM220T_POWER},                                                        //W
-  {0.00, SDM220T_POWER_FACTOR},                                                 //PF
-  {0.00, SDM220T_FREQUENCY},                                                    //Hz
+bz40i_struct bz40iarr[NBREG] = {
+  {"BZ40i_U_SYSTEM",        0.00, BZ40i_U_SYSTEM,       0},
+  {"BZ40i_U_LN_P1",         0.00, BZ40i_U_LN_P1,        0},
+  {"BZ40i_U_LN_P2",         0.00, BZ40i_U_LN_P2,        0},
+  {"BZ40i_U_LN_P3",         0.00, BZ40i_U_LN_P3,        0},
+  {"BZ40i_U_LL_P12",        0.00, BZ40i_U_LL_P12,       0},
+  {"BZ40i_U_LL_P23",        0.00, BZ40i_U_LL_P23,       0},
+  {"BZ40i_U_LL_P31",        0.00, BZ40i_U_LL_P31,       0},
+  {"BZ40i_I_SYSTEM",        0.00, BZ40i_I_SYSTEM,       1},
+  {"BZ40i_I_P1",            0.00, BZ40i_I_P1,           1},
+  {"BZ40i_I_P2",            0.00, BZ40i_I_P2,           1},
+  {"BZ40i_I_P3",            0.00, BZ40i_I_P3,           1},
+  {"BZ40i_I_N",             0.00, BZ40i_I_N,            0},
+  {"BZ40i_PF_SYSTEM",       0.00, BZ40i_PF_SYSTEM,      1},
+  {"BZ40i_PF_P1",           0.00, BZ40i_PF_P1,          1},
+  {"BZ40i_PF_P2",           0.00, BZ40i_PF_P2,          1},
+  {"BZ40i_PF_P3",           0.00, BZ40i_PF_P3,          1},
+  {"BZ40i_S_SYSTEM",        0.00, BZ40i_S_SYSTEM,       1},
+  {"BZ40i_S_P1",            0.00, BZ40i_S_P1,           1},
+  {"BZ40i_S_P2",            0.00, BZ40i_S_P2,           1},
+  {"BZ40i_S_P3",            0.00, BZ40i_S_P3,           1},
+  {"BZ40i_P_SYSTEM",        0.00, BZ40i_P_SYSTEM,       1},
+  {"BZ40i_P_P1",            0.00, BZ40i_P_P1,           1},
+  {"BZ40i_P_P2",            0.00, BZ40i_P_P2,           1},
+  {"BZ40i_P_P3",            0.00, BZ40i_P_P3,           1},
+  {"BZ40i_Q_SYSTEM",        0.00, BZ40i_Q_SYSTEM,       1},
+  {"BZ40i_Q_P1",            0.00, BZ40i_Q_P1,           1},
+  {"BZ40i_Q_P2",            0.00, BZ40i_Q_P2,           1},
+  {"BZ40i_Q_P3",            0.00, BZ40i_Q_P3,           1},
+  {"BZ40i_F",               0.00, BZ40i_F,              2},
+  {"BZ40i_IMPORT_P",        0.00, BZ40i_IMPORT_P,       0},
+  {"BZ40i_IMPORT_Q_LAG",    0.00, BZ40i_IMPORT_Q_LAG,   0},
+  {"BZ40i_IMPORT_Q_LEAD",   0.00, BZ40i_IMPORT_Q_LEAD,  0},
+  {"BZ40i_IMPORT_S",        0.00, BZ40i_IMPORT_S,       0},
+  {"BZ40i_EXPORT_P",        0.00, BZ40i_EXPORT_P,       0},
+  {"BZ40i_EXPORT_Q_LAG",    0.00, BZ40i_EXPORT_Q_LAG,   0},
+  {"BZ40i_EXPORT_Q_LEAD",   0.00, BZ40i_EXPORT_Q_LEAD,  0},
+  {"BZ40i_EXPORT_S",        0.00, BZ40i_EXPORT_S,       0}
 };
 //------------------------------------------------------------------------------
-void xmlrequest(AsyncWebServerRequest *request) {
-  String XML = F("<?xml version='1.0'?><xml>");
+void jsonrequest(AsyncWebServerRequest *request) {
+  String json = F("{\n");
   for (int i = 0; i < NBREG; i++) { 
-    XML += "<response" + (String)i + ">";
-    XML += String(sdmarr[i].regvalarr,2);
-    XML += "</response" + (String)i + ">";
+    json += "  \"";
+    json += bz40iarr[i].dname;
+    json += "\": " + String(bz40iarr[i].regvalarr,2) + ",\n";
   }
-  XML += F("<freeh>");
-  XML += String(ESP.getFreeHeap());
-  XML += F("</freeh>");
-  XML += F("<rst>");
-  XML += lastresetreason;
-  XML += F("</rst>");
-  XML += F("</xml>");
-  request->send(200, "text/xml", XML);
+  json += F("  \"heap\": ");
+  json += String(ESP.getFreeHeap());
+  json += F(",\n  \"reset\": \"");
+  json += lastresetreason;
+  json += F("\"\n}");
+  request->send(200, "application/json", json);
 }
 //------------------------------------------------------------------------------
 void indexrequest(AsyncWebServerRequest *request) {
@@ -118,15 +146,21 @@ void otaInit() {
     ledOff();
   });
   ArduinoOTA.begin();
+  #ifdef DEBUG_SERIAL
+    Serial.println("OTA ready");
+  #endif
 }
 //------------------------------------------------------------------------------
 void serverInit() {
   server.on("/", HTTP_GET, indexrequest);
-  server.on("/xml", HTTP_PUT, xmlrequest);
+  server.on("/json", HTTP_GET, jsonrequest);
   server.onNotFound([](AsyncWebServerRequest *request){
     request->send(404);
   });
   server.begin();
+  #ifdef DEBUG_SERIAL
+    Serial.println("HTTP ready");
+  #endif
 }
 //------------------------------------------------------------------------------
 static void wifiInit() {
@@ -141,24 +175,39 @@ static void wifiInit() {
     ledSwap();
     delay(100);
   }
+
+  #ifdef DEBUG_SERIAL
+    Serial.print("Connected to ");
+    Serial.print(wifi_ssid);
+    Serial.print(" using legacy IP ");
+    Serial.println(WiFi.localIP());
+  #endif
 }
 //------------------------------------------------------------------------------
-void sdmRead() {
-  float tmpval = NAN;
+void bz40iRead() {
+  float temp = NAN;
 
   for (uint8_t i = 0; i < NBREG; i++) {
-    tmpval = sdm.readVal(sdmarr[i].regarr);
+    temp = bz40i.readVal(bz40iarr[i].regarr, bz40iarr[i].isSigned);
 
-    if (isnan(tmpval))
-      sdmarr[i].regvalarr = 0.00;
-    else
-      sdmarr[i].regvalarr = tmpval;
+    if(!isnan(temp)) {
+      bz40iarr[i].regvalarr = temp;
+      #ifdef DEBUG_SERIAL
+        Serial.print(bz40iarr[i].dname);
+        Serial.print(" -> ");
+        Serial.println(bz40iarr[i].regvalarr);
+      #endif
+    }
 
     yield();
   }
 }
 //------------------------------------------------------------------------------
 void setup() {
+  #ifdef DEBUG_SERIAL
+    Serial.begin(115200);
+    Serial.println("\nBZ40i HTTP example");
+  #endif
   pinMode(LED_BUILTIN, OUTPUT);
   ledOn();
 
@@ -167,7 +216,7 @@ void setup() {
   wifiInit();
   otaInit();
   serverInit();
-  sdm.begin();
+  bz40i.begin();
 
   readtime = millis();
 
@@ -178,7 +227,7 @@ void loop() {
   ArduinoOTA.handle();
 
   if (millis() - readtime >= READSDMEVERY) {
-    sdmRead();
+    bz40iRead();
     readtime = millis();
   }
 
