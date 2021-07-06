@@ -372,7 +372,7 @@ const char index_page[] PROGMEM = R"=====(
             };
 
             var xmlhttp = new XMLHttpRequest();
-            var url = "/wetter/power.json";
+            var url = "/json";
 
             function updateStart() {
                 xmlhttp.onreadystatechange = function() {
