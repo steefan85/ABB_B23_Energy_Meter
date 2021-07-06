@@ -5,7 +5,7 @@ const char index_page[] PROGMEM = R"=====(
         <title>POWER METER</title>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.4.1"></script>
         <style>
             body {
               font-family: sans-serif;
