@@ -1,7 +1,7 @@
 /* Library for reading Berg BZ40i Modbus Energy meters.
 *  Reading via Hardware or Software Serial library & rs232<->rs485 converter
-*  2019 Florian "adlerweb" Knodt · www.adlerweb.info
-*  Based on SDM_Energy_Meter 2016-2019 Reaper7
+*  2019-2021 Florian "adlerweb" Knodt · www.adlerweb.info
+*  Based on SDM_Energy_Meter 2016-2020 Reaper7
 *  crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino/)
 */
 //------------------------------------------------------------------------------
@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 #include <Arduino.h>
 #include <BZ40i_Config_User.h>
-#ifdef USE_HARDWARESERIAL
+#if defined ( USE_HARDWARESERIAL )
   #include <HardwareSerial.h>
 #else
   #include <SoftwareSerial.h>
@@ -18,29 +18,58 @@
 //------------------------------------------------------------------------------
 //DEFAULT CONFIG (DO NOT CHANGE ANYTHING!!! for changes use BZ40i_Config_User.h):
 //------------------------------------------------------------------------------
-#ifndef BZ40i_UART_BAUD
-  #define BZ40i_UART_BAUD                     4800                              //default baudrate
+#if !defined (BZ40i_UART_BAUD)
+  #define BZ40i_UART_BAUD                     4800                              // default baudrate
 #endif
 
-#ifndef DERE_PIN
-  #define DERE_PIN                            NOT_A_PIN                         //default digital pin for control MAX485 DE/RE lines (connect DE & /RE together to this pin)
+#if !defined ( DERE_PIN )
+  #define DERE_PIN                            NOT_A_PIN                         // default digital pin for control MAX485 DE/RE lines (connect DE & /RE together to this pin)
 #endif
 
 #ifdef USE_HARDWARESERIAL
 
-  #ifndef BZ40i_UART_CONFIG
-    #define BZ40i_UART_CONFIG                 SERIAL_8N1                        //default hardware uart config
+  #if !defined ( BZ40i_UART_CONFIG )
+    #define BZ40i_UART_CONFIG                 SERIAL_8N1                        // default hardware uart config
   #endif
 
-  #ifndef SWAPHWSERIAL
-    #define SWAPHWSERIAL                      0                                 //(only esp8266) when hwserial used, then swap uart pins from 3/1 to 13/15 (default not swap)
+  #if defined ( ESP8266 ) && !defined ( SWAPHWSERIAL )
+    #define SWAPHWSERIAL                              0                         // (only esp8266) when hwserial used, then swap uart pins from 3/1 to 13/15 (default not swap)
+  #endif
+
+  #if defined ( ESP32 )
+    #if !defined ( BZ40i_RX_PIN )
+      #define BZ40i_RX_PIN                            -1                        // use default rx pin for selected port
+    #endif
+    #if !defined ( BZ40i_TX_PIN )
+      #define BZ40i_TX_PIN                            -1                        // use default tx pin for selected port
+    #endif
+  #endif
+
+#else
+
+  #if defined ( ESP8266 ) || defined ( ESP32 )
+    #if !defined ( BZ40i_UART_CONFIG )
+      #define BZ40i_UART_CONFIG                       SWSERIAL_8N1              // default softwareware uart config for esp8266/esp32
+    #endif
+  #endif
+
+  #if !defined ( BZ40i_RX_PIN )
+    #define BZ40i_RX_PIN                              -1
+  #endif
+  #if !defined ( BZ40i_TX_PIN )
+    #define BZ40i_TX_PIN                              -1
   #endif
 
 #endif
 
-#ifndef MAX_MILLIS_TO_WAIT
-  #define MAX_MILLIS_TO_WAIT                  500                               //default max time to wait for response from BZ40i
+#if !defined ( WAITING_TURNAROUND_DELAY )
+  #define WAITING_TURNAROUND_DELAY                    500                       // time in ms to wait for process current request
 #endif
+
+#if !defined ( RESPONSE_TIMEOUT )
+  #define RESPONSE_TIMEOUT                            500                       //  time in ms to wait for return response from all devices before next request
+#endif
+
 //------------------------------------------------------------------------------
 #define FRAMESIZE_OUT                            9                                //size of out array
 #define FRAMESIZE_IN                            13                                //size of in array
@@ -214,15 +243,25 @@
 #define BZ40i_ERR_NO_ERROR                    0                                   //no error
 #define BZ40i_ERR_CRC_ERROR                   1                                   //crc error
 #define BZ40i_ERR_WRONG_BYTES                 2                                   //bytes b0,b1 or b2 wrong
-#define BZ40i_ERR_NOT_ENOUGHT_BYTES           3                                   //not enough bytes from sdm
+#define BZ40i_ERR_NOT_ENOUGHT_BYTES           3                                   //not enough bytes from BZ40i
 #define BZ40i_ERR_TIMEOUT                     4                                   //timeout
 //------------------------------------------------------------------------------
 class BZ40i {
   public:
-#ifdef USE_HARDWARESERIAL
+#if defined ( USE_HARDWARESERIAL )                                              //  hardware serial
+  #if defined ( ESP8266 )                                                       //  on esp8266
     BZ40i(HardwareSerial& serial, long baud = BZ40i_UART_BAUD, int dere_pin = DERE_PIN, int config = BZ40i_UART_CONFIG, bool swapuart = SWAPHWSERIAL);
-#else
+  #elif defined ( ESP32 )                                                       //  on esp32
+    BZ40i(HardwareSerial& serial, long baud = BZ40i_UART_BAUD, int dere_pin = DERE_PIN, int config = BZ40i_UART_CONFIG, int8_t rx_pin = BZ40i_RX_PIN, int8_t tx_pin = BZ40i_TX_PIN);
+  #else                                                                         //  on avr
+    BZ40i(HardwareSerial& serial, long baud = BZ40i_UART_BAUD, int dere_pin = DERE_PIN, int config = BZ40i_UART_CONFIG);
+  #endif
+#else                                                                           //  software serial
+  #if defined ( ESP8266 ) || defined ( ESP32 )                                  //  on esp8266/esp32
+    BZ40i(SoftwareSerial& serial, long baud = BZ40i_UART_BAUD, int dere_pin = DERE_PIN, int config = BZ40i_UART_CONFIG, int8_t rx_pin = BZ40i_RX_PIN, int8_t tx_pin = BZ40i_TX_PIN);
+  #else                                         
     BZ40i(SoftwareSerial& serial, long baud = BZ40i_UART_BAUD, int dere_pin = DERE_PIN);
+  #endif
 #endif
     virtual ~BZ40i();
 
@@ -230,25 +269,41 @@ class BZ40i {
     float readVal(uint16_t reg, byte type = 0, uint8_t node = BZ40i_B_01);      //read value from register = reg and from deviceId = node
                                                                                 //type 0=unsigned, 1=signed, 2=raw
     uint16_t getErrCode(bool _clear = false);                                   //return last errorcode (optional clear this value, default flase)
-    uint16_t getErrCount(bool _clear = false);                                  //return total errors count (optional clear this value, default flase)
+    uint32_t getErrCount(bool _clear = false);                                  //return total errors count (optional clear this value, default flase)
+    uint32_t getSuccCount(bool _clear = false);                                 // return total success count (optional clear this value, default false)
     void clearErrCode();                                                        //clear last errorcode
     void clearErrCount();                                                       //clear total errors count
+    void clearSuccCount();                                                      // clear total success count
 
   private:
-#ifdef USE_HARDWARESERIAL
-    HardwareSerial& sdmSer;
+#if defined ( USE_HARDWARESERIAL )
+    HardwareSerial& bz40iSer;
 #else
-    SoftwareSerial& sdmSer;
+    SoftwareSerial& bz40iSer;
 #endif
 
-#ifdef USE_HARDWARESERIAL
+#if defined ( USE_HARDWARESERIAL )
     int _config = BZ40i_UART_CONFIG;
-    bool _swapuart = SWAPHWSERIAL;
+    #if defined ( ESP8266 )
+      bool _swapuart = SWAPHWSERIAL;
+    #elif defined ( ESP32 )
+      int8_t _rx_pin = -1;
+      int8_t _tx_pin = -1;
+    #endif
+#else
+  #if defined ( ESP8266 ) || defined ( ESP32 )
+    int _config = BZ40i_UART_CONFIG;
+  #endif
+  int8_t _rx_pin = -1;
+  int8_t _tx_pin = -1; 
 #endif
     long _baud = BZ40i_UART_BAUD;
     int _dere_pin = DERE_PIN;
     uint16_t readingerrcode = BZ40i_ERR_NO_ERROR;                               //4 = timeout; 3 = not enough bytes; 2 = number of bytes OK but bytes b0,b1 or b2 wrong, 1 = crc error
-    uint16_t readingerrcount = 0;                                               //total errors couter 
+    uint32_t readingerrcount = 0;                                               //total errors couter
+    uint32_t readingsuccesscount = 0;                                           // total success counter
     uint16_t calculateCRC(uint8_t *array, uint8_t num);
+    void flush(unsigned long _flushtime = 0);                                   //  read serial if any old data is available or for a given time in ms
+    void dereSet(bool _state = LOW);                                            //  for control MAX485 DE/RE pins, LOW receive from BZ40i, HIGH transmit to BZ40i
 };
-#endif //BZ40i_h
+#endif // BZ40i_h

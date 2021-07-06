@@ -4,12 +4,11 @@
  * Live HTTP status page for BZ40i
  *  
  * Requires:
- * https://github.com/plerup/espsoftwareserial#4.0.0
  * https://github.com/me-no-dev/ESPAsyncTCP
  * https://github.com/me-no-dev/ESPAsyncWebServer
  */
 
-#define READSDMEVERY  5000                                                      //read BZ40i every 5s
+#define READBZ40iEVERY  5000                                                    //read BZ40i every 5s
 //#define USE_STATIC_IP
 
 #include <ESP8266WiFi.h>
@@ -31,10 +30,24 @@
 //------------------------------------------------------------------------------
 AsyncWebServer server(80);
 
-SoftwareSerial swSerBZ40i(D1, D2);                                              //config SoftwareSerial (rx->D1 / tx->D2)
-
-BZ40i bz40i(swSerBZ40i, 4800, NOT_A_PIN);                                       //SOFTWARE SERIAL
-//BZ40i bz40i(Serial, 9600, NOT_A_PIN, SERIAL_8N1, false);                      //HARDWARE SERIAL
+#if defined ( USE_HARDWARESERIAL )                                              //for HWSERIAL
+  #if defined ( ESP8266 )                                                       //for ESP8266
+    BZ40i bz40i(Serial1, BZ40i_UART_BAUD, DERE_PIN, BZ40i_UART_CONFIG);         //config BZ40i
+  #elif defined ( ESP32 )                                                       //for ESP32
+    BZ40i bz40i(Serial1, BZ40i_UART_BAUD, DERE_PIN, BZ40i_UART_CONFIG, BZ40i_RX_PIN, BZ40i_TX_PIN); //config BZ40i
+  #else                                                                         //for AVR
+   BZ40i bz40i(Serial1, BZ40i_UART_BAUD, DERE_PIN);                             //config BZ40i on Serial1 (if available!)
+  #endif
+#else                                                                           //for SWSERIAL
+  #include <SoftwareSerial.h>                                                   //import SoftwareSerial library
+  #if defined ( ESP8266 ) || defined ( ESP32 )                                  //for ESP
+    SoftwareSerial swSerBZ40i;                                                  //config SoftwareSerial
+    BZ40i bz40i(swSerBZ40i, BZ40i_UART_BAUD, DERE_PIN, BZ40i_UART_CONFIG, BZ40i_RX_PIN, BZ40i_TX_PIN); //config BZ40i
+  #else                                                                         //for AVR
+    SoftwareSerial swSerBZ40i(BZ40i_RX_PIN, BZ40i_TX_PIN);                      //config SoftwareSerial
+    BZ40i bz40i(swSerBZ40i, BZ40i_UART_BAUD, DERE_PIN);                         //config BZ40i
+  #endif
+#endif
 
 //------------------------------------------------------------------------------
 String devicename = "PWRMETER";
@@ -101,7 +114,7 @@ bz40i_struct bz40iarr[NBREG] = {
 //------------------------------------------------------------------------------
 void jsonrequest(AsyncWebServerRequest *request) {
   String json = F("{\n");
-  for (int i = 0; i < NBREG; i++) { 
+  for (int i = 0; i < NBREG; i++) {
     json += "  \"";
     json += bz40iarr[i].dname;
     json += "\": " + String(bz40iarr[i].regvalarr,2) + ",\n";
@@ -115,7 +128,7 @@ void jsonrequest(AsyncWebServerRequest *request) {
 }
 //------------------------------------------------------------------------------
 void indexrequest(AsyncWebServerRequest *request) {
-  request->send_P(200, "text/html", index_page); 
+  request->send_P(200, "text/html", index_page);
 }
 //------------------------------------------------------------------------------
 void ledOn() {
@@ -226,7 +239,7 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
 
-  if (millis() - readtime >= READSDMEVERY) {
+  if (millis() - readtime >= READBZ40iEVERY) {
     bz40iRead();
     readtime = millis();
   }
