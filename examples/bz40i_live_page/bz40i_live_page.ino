@@ -124,7 +124,13 @@ void jsonrequest(AsyncWebServerRequest *request) {
   json += F(",\n  \"reset\": \"");
   json += lastresetreason;
   json += F("\"\n}");
-  request->send(200, "application/json", json);
+  
+  AsyncWebServerResponse *response = request->beginResponse(200, "text/json",  json);
+  response->addHeader(F("Access-Control-Allow-Origin"), F("*"));
+  response->addHeader(F("Access-Control-Max-Age"), F("600"));
+  response->addHeader(F("Access-Control-Allow-Methods"), F("PUT,POST,GET,OPTIONS"));
+  response->addHeader(F("Access-Control-Allow-Headers"), F("*"));
+  request->send(response);
 }
 //------------------------------------------------------------------------------
 void indexrequest(AsyncWebServerRequest *request) {
