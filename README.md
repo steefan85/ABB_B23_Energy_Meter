@@ -245,7 +245,7 @@ ABB_B23.clearSuccCount();
 
 ### Credits: ###
 
-:+1: ABB_B23_Energy_Meter library by adlerweb (https://github.com/adlerweb/ABB_B23_Energy_Meter)<\br>
+:+1: ABB_B23_Energy_Meter library by adlerweb (https://github.com/adlerweb/ABB_B23_Energy_Meter)</br>
 :+1: SDM_Energy_Meter library by Reaper7 (https://github.com/reaper7/SDM_Energy_Meter)</br>
 :+1: ESP SoftwareSerial library by Peter Lerup (https://github.com/plerup/espsoftwareserial)</br>
 :+1: crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino)</br>
