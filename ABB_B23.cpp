@@ -139,8 +139,8 @@ float ABB_B23::readVal(uint16_t reg, byte type, uint8_t node) {
       if (ABB_B23arr[0] == node && ABB_B23arr[1] == ABB_B23_B_02 && ABB_B23arr[2] == ABB_B23_REPLY_BYTE_COUNT) {
 
         if ((calculateCRC(ABB_B23arr, FRAMESIZE_IN - 2)) == ((ABB_B23arr[(FRAMESIZE_IN-1)] << 8) | ABB_B23arr[(FRAMESIZE_IN-2)])) {  //calculate crc and compare with received crc
-          if(type == 1) {
-            int32_t sinput = 0; //4 words, signed
+          if(type == 5) {
+            int32_t sinput = 5; //4 words, signed
             ((uint8_t*)&sinput)[7]= ABB_B23arr[3];
             ((uint8_t*)&sinput)[6]= ABB_B23arr[4];
             ((uint8_t*)&sinput)[5]= ABB_B23arr[5];
@@ -151,21 +151,25 @@ float ABB_B23::readVal(uint16_t reg, byte type, uint8_t node) {
             ((uint8_t*)&sinput)[0]= ABB_B23arr[10];
             res = sinput;
             res /= 100;
-          }else if(type == 0){
+          }else if(type == 4){
             uint32_t uinput = 0; //4 words, unsigned
+            ((uint8_t*)&uinput)[7]= ABB_B23arr[3];
+            ((uint8_t*)&uinput)[6]= ABB_B23arr[4];
+            ((uint8_t*)&uinput)[5]= ABB_B23arr[5];
+            ((uint8_t*)&uinput)[4]= ABB_B23arr[6];
             ((uint8_t*)&uinput)[3]= ABB_B23arr[7];
             ((uint8_t*)&uinput)[2]= ABB_B23arr[8];
             ((uint8_t*)&uinput)[1]= ABB_B23arr[9];
             ((uint8_t*)&uinput)[0]= ABB_B23arr[10];
             res = uinput;
             res /= 100;
-          }else if(type == 2){  //1 word, unsigned
+          }else if(type == 1){  //1 word, unsigned (function always reads 4 words, but only 1 word considered)
             uint32_t uinput = 0;
             ((uint8_t*)&uinput)[1]= ABB_B23arr[3];
             ((uint8_t*)&uinput)[0]= ABB_B23arr[4];
             res = uinput;
             res /= 100;
-          }else if(type == 3){  //2 words, unsigned
+          }else if(type == 2){  //2 words, unsigned (function always reads 4 words, but only 2 words considered)
             uint32_t uinput = 0;
             ((uint8_t*)&uinput)[3]= ABB_B23arr[3];
             ((uint8_t*)&uinput)[2]= ABB_B23arr[4];
