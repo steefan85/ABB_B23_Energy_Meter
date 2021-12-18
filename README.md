@@ -29,7 +29,7 @@ you also need rs232<->rs485 converter:
 ---
 
 ### Configuring: ###
-Default configuration is specified in the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L19) file, and parameters are set to:</br>
+Default configuration is specified in the [BZ40i.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i.h#L19) file, and parameters are set to:</br>
 <i>Software Serial mode, baud 4800, uart config SERIAL_8N1, without DE/RE pin,</br>
 uart pins for esp32 hwserial and esp32/esp8266/avr swserial as NOT_A_PIN (-1).</br></br>
 For esp32 hwserial this means using the default pins for the selected uart port,</br>
@@ -58,7 +58,7 @@ Keep in mind you need to set your BZ40i to RTU-mode with the same baudrate as de
 
 ### Initializing: ###
 If the user configuration is specified in the [BZ40i_Config_User.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i_Config_User.h) file</br>
-or if the default configuration from the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L19) file is suitable</br>
+or if the default configuration from the [BZ40i.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i.h#L19) file is suitable</br>
 initialization is limited to passing serial port reference (software or hardware)</br>
 and looks as follows:
 ```cpp
@@ -163,7 +163,7 @@ to ensure low level on GPIO15 by built-in in most ESP8266 modules pulldown resis
 
 ### Reading: ###
 List of available registers for Berg BZ40i:</br>
-https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L88
+https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i.h#L88
 ```cpp
 //reading voltage from BZ40i with slave address 0x01 (default)
 //                                      __________register name
@@ -245,6 +245,7 @@ bz40i.clearSuccCount();
 
 ### Credits: ###
 
+:+1: BZ40i_Energy_Meter library by adlerweb (https://github.com/adlerweb/BZ40i_Energy_Meter)<\br>
 :+1: SDM_Energy_Meter library by Reaper7 (https://github.com/reaper7/SDM_Energy_Meter)</br>
 :+1: ESP SoftwareSerial library by Peter Lerup (https://github.com/plerup/espsoftwareserial)</br>
 :+1: crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino)</br>
