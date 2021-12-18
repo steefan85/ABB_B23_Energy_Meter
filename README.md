@@ -1,4 +1,4 @@
-## Library for reading Berg BZ40i Modbus Energy meters. ##
+## Library for reading ABB B23 Modbus Energy meters. ##
 
 ### SECTIONS: ###
 #### [INTRODUCTION](#introduction) ####
@@ -11,7 +11,7 @@
 ---
 
 ### Introduction: ###
-This library allows you reading Berg BZ40i energy meter(s) using:
+This library allows you reading ABB B23 energy meter(s) using:
 - [x] Hardware Serial (<i><b>recommended option</b>, smallest number of reads errors, especially for esp8266</i>) <b><i>or</i></b>
 - [x] Software Serial, attached as core libraries for esp8266 and avr</br>
      (<i>the new version of esp Software Serial library</br>
@@ -29,7 +29,7 @@ you also need rs232<->rs485 converter:
 ---
 
 ### Configuring: ###
-Default configuration is specified in the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L19) file, and parameters are set to:</br>
+Default configuration is specified in the [BZ40i.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i.h#L19) file, and parameters are set to:</br>
 <i>Software Serial mode, baud 4800, uart config SERIAL_8N1, without DE/RE pin,</br>
 uart pins for esp32 hwserial and esp32/esp8266/avr swserial as NOT_A_PIN (-1).</br></br>
 For esp32 hwserial this means using the default pins for the selected uart port,</br>
@@ -38,10 +38,10 @@ For swserial option (esp32/esp8266/avr) is necessary</br>
 to specify the pin numbers, as described below.</i>
 
 User can set the parameters in two ways:
-- by editing the [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h) file
+- by editing the [BZ40i_Config_User.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i_Config_User.h) file
 - by passing values during initialization (section below)
 
-[BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h) file includes also two parameters that can be adjusted depending on your needs:
+[BZ40i_Config_User.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i_Config_User.h) file includes also two parameters that can be adjusted depending on your needs:
 - WAITING_TURNAROUND_DELAY (default set to 200ms) defines the time (after sending the query) for the response from the slave device.
   If the slave device does not send the required number of bytes (FRAMESIZE) within this time, an BZ40i_ERR_TIMEOUT error will be returned.
 - RESPONSE_TIMEOUT (default set to 500ms) defines the time (after sending the request and receiving the reply) to a possible response 
@@ -49,7 +49,7 @@ User can set the parameters in two ways:
   It is a protection time for devices that are not able to quickly respond to inquiries.
 
 NOTE for Hardware Serial mode: <i>to force the Hardware Serial mode,</br>
-user must edit the corresponding entry in [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h#L17) file.</br>
+user must edit the corresponding entry in [BZ40i_Config_User.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i_Config_User.h#L17) file.</br>
 adding #define USE_HARDWARESERIAL to the main ino file is not enough.</i>
 
 Keep in mind you need to set your BZ40i to RTU-mode with the same baudrate as defined here, for example "BAU r4.8k".
@@ -57,8 +57,8 @@ Keep in mind you need to set your BZ40i to RTU-mode with the same baudrate as de
 ---
 
 ### Initializing: ###
-If the user configuration is specified in the [BZ40i_Config_User.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i_Config_User.h) file</br>
-or if the default configuration from the [BZ40i.h](https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L19) file is suitable</br>
+If the user configuration is specified in the [BZ40i_Config_User.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i_Config_User.h) file</br>
+or if the default configuration from the [BZ40i.h](https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i.h#L19) file is suitable</br>
 initialization is limited to passing serial port reference (software or hardware)</br>
 and looks as follows:
 ```cpp
@@ -163,7 +163,7 @@ to ensure low level on GPIO15 by built-in in most ESP8266 modules pulldown resis
 
 ### Reading: ###
 List of available registers for Berg BZ40i:</br>
-https://github.com/adlerweb/BZ40i_Energy_Meter/blob/master/BZ40i.h#L88
+https://github.com/steefan85/ABB_B23_Energy_Meter/blob/master/BZ40i.h#L88
 ```cpp
 //reading voltage from BZ40i with slave address 0x01 (default)
 //                                      __________register name
@@ -245,6 +245,7 @@ bz40i.clearSuccCount();
 
 ### Credits: ###
 
+:+1: BZ40i_Energy_Meter library by adlerweb (https://github.com/adlerweb/BZ40i_Energy_Meter)<\br>
 :+1: SDM_Energy_Meter library by Reaper7 (https://github.com/reaper7/SDM_Energy_Meter)</br>
 :+1: ESP SoftwareSerial library by Peter Lerup (https://github.com/plerup/espsoftwareserial)</br>
 :+1: crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino)</br>
