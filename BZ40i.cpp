@@ -139,23 +139,41 @@ float BZ40i::readVal(uint16_t reg, byte type, uint8_t node) {
 
         if ((calculateCRC(bz40iarr, FRAMESIZE_IN - 2)) == ((bz40iarr[(FRAMESIZE_IN-1)] << 8) | bz40iarr[(FRAMESIZE_IN-2)])) {  //calculate crc and compare with received crc
           if(type == 1) {
-            int32_t sinput = 0;
+            int32_t sinput = 0; //4 words, signed
+            ((uint8_t*)&sinput)[7]= bz40iarr[3];
+            ((uint8_t*)&sinput)[6]= bz40iarr[4];
+            ((uint8_t*)&sinput)[5]= bz40iarr[5];
+            ((uint8_t*)&sinput)[4]= bz40iarr[6];
             ((uint8_t*)&sinput)[3]= bz40iarr[7];
             ((uint8_t*)&sinput)[2]= bz40iarr[8];
             ((uint8_t*)&sinput)[1]= bz40iarr[9];
             ((uint8_t*)&sinput)[0]= bz40iarr[10];
             res = sinput;
-            res /= 1000;
+            res /= 100;
           }else if(type == 0){
-            uint32_t uinput = 0;
+            uint32_t uinput = 0; //4 words, unsigned
             ((uint8_t*)&uinput)[3]= bz40iarr[7];
             ((uint8_t*)&uinput)[2]= bz40iarr[8];
             ((uint8_t*)&uinput)[1]= bz40iarr[9];
             ((uint8_t*)&uinput)[0]= bz40iarr[10];
             res = uinput;
-            res /= 1000;
-          }else{
+            res /= 100;
+          }else if(type == 2){  //1 word, unsigned
             uint32_t uinput = 0;
+            ((uint8_t*)&uinput)[1]= bz40iarr[3];
+            ((uint8_t*)&uinput)[0]= bz40iarr[4];
+            res = uinput;
+            res /= 100;
+          }else if(type == 2){  //2 words, unsigned
+            uint32_t uinput = 0;
+            ((uint8_t*)&uinput)[3]= bz40iarr[3];
+            ((uint8_t*)&uinput)[2]= bz40iarr[4];
+            ((uint8_t*)&uinput)[1]= bz40iarr[5];
+            ((uint8_t*)&uinput)[0]= bz40iarr[6];
+            res = uinput;
+            res /= 10;
+          }else{
+            uint32_t uinput = 0;  //4 words, unsigned
             ((uint8_t*)&uinput)[3]= bz40iarr[7];
             ((uint8_t*)&uinput)[2]= bz40iarr[8];
             ((uint8_t*)&uinput)[1]= bz40iarr[9];

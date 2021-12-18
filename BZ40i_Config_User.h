@@ -37,11 +37,11 @@
   #endif
 #else
   #if defined ( ESP8266 ) || defined ( ESP32 )
-    #define BZ40i_RX_PIN                        13
-    #define BZ40i_TX_PIN                        15
+    #define BZ40i_RX_PIN                        4
+    #define BZ40i_TX_PIN                        5
   #else
-    #define BZ40i_RX_PIN                        10
-    #define BZ40i_TX_PIN                        11
+    #define BZ40i_RX_PIN                        4
+    #define BZ40i_TX_PIN                        5
   #endif
 #endif
 
@@ -51,7 +51,7 @@
 /*
 *  define user DERE_PIN for control MAX485 DE/RE lines (connect DE & /RE together to this pin)
 */
-//#define DERE_PIN                            NOT_A_PIN
+#define DERE_PIN                            0
 
 //------------------------------------------------------------------------------
 

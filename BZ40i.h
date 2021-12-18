@@ -88,8 +88,8 @@
 //BZ40i registers
 
 //Voltages
-#define BZ40i_U_SYSTEM                        0x0000
-#define BZ40i_U_LN_P1                         0x0004
+#define BZ40i_U_SYSTEM                        0x5B00
+#define ABB_U_LN_P1                           0x5B00
 #define BZ40i_U_LN_P2                         0x0008
 #define BZ40i_U_LN_P3                         0x000C
 #define BZ40i_U_LL_P12                        0x0010
@@ -128,10 +128,10 @@
 #define BZ40i_Q_P3                            0x0078
 
 //Frequency
-#define BZ40i_F                               0x008C
+#define ABB_F                                 0x5B2C
 
 //Counter Import
-#define BZ40i_IMPORT_P                        0x007C
+#define ABB_IMPORT_P                          0x5000
 #define BZ40i_IMPORT_Q_LAG                    0x0080
 #define BZ40i_IMPORT_Q_LEAD                   0x00B0
 #define BZ40i_IMPORT_S                        0x00B8
