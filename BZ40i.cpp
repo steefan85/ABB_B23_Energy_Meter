@@ -1,6 +1,7 @@
-/* Library for reading Berg BZ40i Modbus Energy meters.
+/* Library for reading ABB B23 Modbus Energy meters.
 *  Reading via Hardware or Software Serial library & rs232<->rs485 converter
-*  2019-2021 Florian "adlerweb" Knodt · www.adlerweb.info
+*  2021 Stefan
+*  Based on Florian "adlerweb" Knodt · www.adlerweb.info
 *  Based on SDM_Energy_Meter 2016-2020 Reaper7
 *  crc calculation by Jaime García (https://github.com/peninquen/Modbus-Energy-Monitor-Arduino/)
 */
@@ -164,7 +165,7 @@ float BZ40i::readVal(uint16_t reg, byte type, uint8_t node) {
             ((uint8_t*)&uinput)[0]= bz40iarr[4];
             res = uinput;
             res /= 100;
-          }else if(type == 2){  //2 words, unsigned
+          }else if(type == 3){  //2 words, unsigned
             uint32_t uinput = 0;
             ((uint8_t*)&uinput)[3]= bz40iarr[3];
             ((uint8_t*)&uinput)[2]= bz40iarr[4];
